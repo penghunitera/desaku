@@ -2,7 +2,7 @@
 
 ## Situs yang disiapkan
 
-Situs aaPanel bernama `desaku.test` memakai PHP 8.4, port 8088, dan direktori `/www/wwwroot/desaku.test`. Database dan pengguna khusus yang dibuat otomatis oleh aaPanel bernama `sql_desaku_test`, dengan akses localhost. Nama `desaku.test` hanya nama internal situs; alamat uji adalah `http://103.170.89.151:8088`.
+Situs aaPanel bernama `desaku.test` memakai PHP 8.4 dan direktori `/www/wwwroot/desaku.test`. Database dan pengguna khusus yang dibuat otomatis oleh aaPanel bernama `sql_desaku_test`, dengan akses localhost. Alamat publik adalah `http://103.170.89.151/desaku/`, memakai port 80 yang sudah terbuka. Port 8088 hanya listener internal `127.0.0.1:8088`; tidak perlu meminta pembukaan port ke penyedia server.
 
 Aplikasi terpasang pada 13 Oktober 2026 dengan PHP 8.4.14, MariaDB 10.11.10, dan build Vite production. Snapshot lokal telah diimpor: 24 tabel bisnis, 150.691 baris, 150.677 baris DPT, dan 4 dokumen privat. Checksum DPT, rekap 240 wilayah, enkripsi identifier, dan hash akun terverifikasi. Tiga baris judul DPT tetap disimpan tetapi dikecualikan dari statistik. Akun menggunakan password yang sama dengan instalasi lokal.
 
@@ -30,7 +30,8 @@ Edit `.env` di server. Password database diambil dari aaPanel dan disimpan hanya
 ```dotenv
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=http://103.170.89.151:8088
+APP_URL=http://103.170.89.151/desaku
+ASSET_URL=http://103.170.89.151/desaku
 APP_LOCALE=id
 LOG_CHANNEL=daily
 LOG_LEVEL=warning
@@ -43,6 +44,8 @@ DB_PASSWORD="isi-password-database-di-server"
 SESSION_DRIVER=database
 SESSION_ENCRYPT=true
 SESSION_SECURE_COOKIE=false
+SESSION_PATH=/desaku
+SESSION_COOKIE=desaku_session
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 DB_QUEUE_RETRY_AFTER=180
@@ -84,7 +87,11 @@ location / {
 }
 ```
 
-Port 8088 perlu diizinkan firewall jika belum terbuka. `.env` dan `storage/app/private` tidak boleh tersaji melalui HTTP. Alamat IP bekerja sebagai situs default pada listener 8088 selama tidak ada konfigurasi situs lain pada port itu.
+Konfigurasi `ops/nginx-desaku-path.conf` di-include hanya pada server block IP port 80, melalui `/www/server/panel/vhost/nginx/extension/103.170.89.151/desaku-path.conf`. File virtual host `/www/server/panel/vhost/nginx/103.170.89.151.conf` mendapat satu directive include; location aplikasi lain tetap dipertahankan. Virtual host DESAKU mendengarkan `127.0.0.1:8088`.
+
+Proxy menghapus prefix `/desaku/` pada request upstream dan mengirim `X-Forwarded-Prefix: /desaku`. Laravel hanya mempercayai proxy `127.0.0.1`. Tautan, aset, redirect login, dan cookie sesi memakai jalur DESAKU. `.env` dan `storage/app/private` tidak boleh tersaji melalui HTTP. Setelah bind domain sendiri, sesuaikan kembali APP_URL, ASSET_URL, dan SESSION_PATH dengan lokasi situs.
+
+`ops/aapanel-path.py` memasang konfigurasi tersebut dengan backup privat dan `nginx -t` sebelum reload. Helper membandingkan respons root dan entry SIMRS sebelum/sesudah, serta memeriksa prefix login dan path cookie. Gunakan hanya pada server yang sesuai; jangan menyalin konfigurasi aplikasi lain atau mengubah root/PHP handler mereka.
 
 Dengan `QUEUE_CONNECTION=database`, server ini memakai unit systemd khusus `desaku-queue.service`, pengguna `www`, working directory proyek. Konfigurasi berada di `ops/desaku-queue.service`, dengan perintah worker:
 

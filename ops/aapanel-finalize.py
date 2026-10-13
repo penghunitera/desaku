@@ -13,7 +13,7 @@ APP = pathlib.Path('/www/wwwroot/desaku.test')
 WORK = pathlib.Path('/tmp/desaku-deploy-work-20261013')
 SNAPSHOT = pathlib.Path('/tmp/desaku-staging-20261013/snapshot')
 PHP = '/www/server/php/84/bin/php'
-BASE = 'http://103.170.89.151:8088'
+BASE = 'http://103.170.89.151/desaku'
 
 
 def run(args):
