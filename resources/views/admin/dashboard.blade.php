@@ -1,0 +1,8 @@
+@extends('admin.layout') @section('title','Dashboard') @section('heading','Ringkasan desa') @section('content')
+<section class="admin-welcome"><div><small>RUANG KERJA DESA</small><h2>Selamat bekerja, {{ str(auth()->user()->name)->before(' ') }}.</h2><p>Pantau pelayanan, kelengkapan data warga, dan potensi SDM desa.</p></div><a href="{{ route('admin.residents.create') }}">+ Tambah warga</a></section>
+<section class="admin-metrics"><article><span>♙</span><div><small>PENDUDUK TERDATA</small><b>{{ number_format($residentCount,0,',','.') }}</b></div></article><article><span>↻</span><div><small>PERMOHONAN</small><b>{{ number_format($requestCount,0,',','.') }}</b></div></article><article><span>▣</span><div><small>PRODUK BUMDES</small><b>{{ number_format($productCount,0,',','.') }}</b></div></article><article><span>Rp</span><div><small>POTENSI PBB {{ now()->year }}</small><b>Rp{{ number_format($pbbPotential,0,',','.') }}</b></div></article></section>
+@if($dpt !== null)
+    @include('admin.partials.dpt-statistics')
+@endif
+<section class="admin-panel"><div class="panel-head"><div><small>AKTIVITAS TERBARU</small><h2>Permohonan warga</h2></div></div><div class="admin-table"><div class="table-row table-head"><span>Kode</span><span>Pemohon</span><span>Layanan</span><span>Status</span></div>@forelse($recentRequests as $item)<div class="table-row"><b>{{ $item->tracking_code }}</b><span>{{ $item->resident?->full_name ?? '—' }}</span><span>{{ str($item->service_type)->replace('-',' ')->title() }}</span><span class="status-chip">{{ $item->status }}</span></div>@empty<div class="table-empty">Belum ada permohonan masuk.</div>@endforelse</div></section>
+@endsection

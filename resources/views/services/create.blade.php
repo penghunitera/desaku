@@ -1,0 +1,16 @@
+@extends('services.layout')
+@section('title', 'Ajukan Permohonan')
+@section('content')
+<div class="form-shell">
+    <div class="form-intro"><a href="{{ route('home') }}#layanan">← Kembali ke layanan</a><p class="eyebrow"><span></span> Formulir permohonan</p><h1>Ajukan layanan warga</h1><p>Isi data sesuai dokumen resmi. Kolom bertanda bintang wajib diisi.</p><div class="privacy-note"><b>Privasi data</b><p>NIK dienkripsi. Dokumen tersimpan di penyimpanan privat dan hanya dapat diakses petugas berwenang.</p></div></div>
+    <form class="service-form" action="{{ route('services.store') }}" method="post" enctype="multipart/form-data" novalidate>
+        @csrf
+        @if($errors->any())<div class="form-errors"><b>Periksa kembali formulir:</b><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        <fieldset><legend><span>1</span> Pilih layanan</legend><div class="service-options">@foreach($services as $key => $service)<label><input type="radio" name="service_type" value="{{ $key }}" @checked(old('service_type', $selected) === $key)><span><b>{{ $service['name'] }}</b><small>{{ $service['category_name'] }} · {{ $service['duration'] }}</small></span></label>@endforeach</div></fieldset>
+        <fieldset><legend><span>2</span> Identitas pemohon</legend><div class="form-grid"><label>Nama lengkap *<input name="full_name" value="{{ old('full_name') }}" required autocomplete="name"></label><label>NIK *<input name="nik" value="{{ old('nik') }}" required inputmode="numeric" maxlength="16" placeholder="16 angka"></label><label>Nomor HP aktif *<input name="phone" value="{{ old('phone') }}" required inputmode="tel" placeholder="08xxxxxxxxxx"></label><label>Tanggal lahir<input type="date" name="birth_date" value="{{ old('birth_date') }}"></label><label>Dusun *<select name="hamlet" required><option value="">Pilih dusun</option>@foreach(['Dusun I','Dusun II','Dusun III','Dusun IV'] as $hamlet)<option @selected(old('hamlet')===$hamlet)>{{ $hamlet }}</option>@endforeach</select></label><label class="wide">Alamat lengkap *<textarea name="address" rows="3" required>{{ old('address') }}</textarea></label></div></fieldset>
+        <fieldset><legend><span>3</span> Keperluan dan dokumen</legend><label>Jelaskan keperluan *<textarea name="purpose" rows="4" required placeholder="Tuliskan layanan, program, produk, atau kebutuhan Anda secara lengkap">{{ old('purpose') }}</textarea></label><label>Alamat tujuan <small>(wajib untuk surat pindah)</small><textarea name="destination_address" rows="3">{{ old('destination_address') }}</textarea></label><label class="upload-box"><span>Unggah dokumen persyaratan bila diperlukan</span><input type="file" name="documents[]" accept=".pdf,.jpg,.jpeg,.png" multiple><small>Maksimal 5 dokumen, masing-masing 5 MB. Format PDF, JPG, atau PNG.</small></label></fieldset>
+        <label class="consent-box"><input type="checkbox" name="consent" value="1" @checked(old('consent')) required><span>Saya menyetujui pemrosesan data pribadi dan dokumen untuk keperluan pelayanan yang saya ajukan. Saya memahami data tidak dipublikasikan dan dapat meminta koreksi melalui kantor desa.</span></label>
+        <button class="submit-request" type="submit">Kirim permohonan <span>→</span></button>
+    </form>
+</div>
+@endsection
