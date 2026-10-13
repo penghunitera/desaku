@@ -2,9 +2,11 @@
 
 ## Situs yang disiapkan
 
-Situs aaPanel bernama `desaku.test` memakai PHP 8.4, port 8088, dan direktori `/www/wwwroot/desaku.test`. Database dan pengguna khusus yang dibuat otomatis oleh aaPanel bernama `sql_desaku_test`, dengan akses localhost. Nama `desaku.test` hanya nama internal situs; alamat uji yang direncanakan adalah `http://103.170.89.151:8088`.
+Situs aaPanel bernama `desaku.test` memakai PHP 8.4, port 8088, dan direktori `/www/wwwroot/desaku.test`. Database dan pengguna khusus yang dibuat otomatis oleh aaPanel bernama `sql_desaku_test`, dengan akses localhost. Nama `desaku.test` hanya nama internal situs; alamat uji adalah `http://103.170.89.151:8088`.
 
-Situs dan database sudah dibuat, tetapi aplikasi belum terpasang. Setelah domain tersedia, bind domain ke situs, pasang SSL, perbarui `APP_URL`, dan set `SESSION_SECURE_COOKIE=true`.
+Aplikasi terpasang pada 13 Oktober 2026 dengan PHP 8.4.14, MariaDB 10.11.10, dan build Vite production. Snapshot lokal telah diimpor: 24 tabel bisnis, 150.691 baris, 150.677 baris DPT, dan 4 dokumen privat. Checksum DPT, rekap 240 wilayah, enkripsi identifier, dan hash akun terverifikasi. Tiga baris judul DPT tetap disimpan tetapi dikecualikan dari statistik. Akun menggunakan password yang sama dengan instalasi lokal.
+
+Setelah domain tersedia, bind domain ke situs, pasang SSL, perbarui `APP_URL`, dan set `SESSION_SECURE_COOKIE=true`. Alamat uji saat ini masih menggunakan HTTP.
 
 ## Clone pertama
 
@@ -43,6 +45,7 @@ SESSION_ENCRYPT=true
 SESSION_SECURE_COOKIE=false
 CACHE_STORE=database
 QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=180
 FILESYSTEM_DISK=local
 ```
 
@@ -57,13 +60,14 @@ Migration MySQL menyiapkan tabel sumber DPT dan view statistik dengan aturan val
 ```bash
 cd /www/wwwroot/desaku.test
 /www/server/php/84/bin/php /usr/bin/composer check-platform-reqs --no-dev
+export PATH=/www/server/desaku-node/v22.23.3/bin:$PATH
 npm ci
 npm run build
 /www/server/php/84/bin/php artisan migrate --force
 /www/server/php/84/bin/php artisan optimize
 ```
 
-Gunakan Node yang memenuhi versi di README. `public/build` dihasilkan saat build dan tidak dilacak Git. Jangan membawa `public/hot` atau menjalankan Vite dev server di production.
+Node 22.23.3 untuk DESAKU dipasang terpisah di `/www/server/desaku-node/v22.23.3`; Node aplikasi lain tidak diganti. `public/build` dihasilkan saat build dan tidak dilacak Git. Jangan membawa `public/hot` atau menjalankan Vite dev server di production.
 
 PHP-FPM (`www`) harus bisa membaca aplikasi dan menulis `storage` serta `bootstrap/cache`. Batasi akses `.env` dan dokumen privat; hindari permission 777. Jalankan Composer, build, dan Artisan dengan kepemilikan file yang konsisten.
 
@@ -82,13 +86,29 @@ location / {
 
 Port 8088 perlu diizinkan firewall jika belum terbuka. `.env` dan `storage/app/private` tidak boleh tersaji melalui HTTP. Alamat IP bekerja sebagai situs default pada listener 8088 selama tidak ada konfigurasi situs lain pada port itu.
 
-Dengan `QUEUE_CONNECTION=database`, siapkan worker khusus melalui Supervisor aaPanel, pengguna `www`, working directory proyek:
+Dengan `QUEUE_CONNECTION=database`, server ini memakai unit systemd khusus `desaku-queue.service`, pengguna `www`, working directory proyek. Konfigurasi berada di `ops/desaku-queue.service`, dengan perintah worker:
 
 ```bash
 /www/server/php/84/bin/php /www/wwwroot/desaku.test/artisan queue:work --sleep=3 --tries=3 --timeout=120
 ```
 
 Worker diperlukan untuk job sinkronisasi PBB melalui queue. `routes/console.php` saat ini belum mendefinisikan jadwal aplikasi.
+
+Periksa worker melalui sesi administrator:
+
+```bash
+systemctl is-active desaku-queue.service
+systemctl is-enabled desaku-queue.service
+systemctl status desaku-queue.service --no-pager
+```
+
+`DB_QUEUE_RETRY_AFTER=180` lebih panjang daripada timeout worker 120 detik. Unit berjalan otomatis saat boot dan restart bila proses berhenti. Tidak ada jadwal sinkronisasi PBB otomatis; pengiriman tetap mengikuti tindakan pengelola.
+
+## Snapshot privat
+
+Paket dan log impor disimpan di direktori root terbatas `/tmp/desaku-staging-20261013` dan `/tmp/desaku-deploy-work-20261013`, di luar document root. `ops/aapanel-import.py` hanya untuk impor snapshot yang telah disetujui ke tabel bisnis kosong; marker keberhasilan mencegah pengulangan. Jangan menggunakannya untuk update rutin.
+
+`ops/aapanel-finalize.py` memeriksa marker impor, mengaktifkan worker khusus, memverifikasi file, dan menguji respons HTTP. Helper tidak membawa password database, APP_KEY, NIK, atau isi dokumen ke Git.
 
 ## Update melalui Git
 
@@ -99,6 +119,7 @@ cd /www/wwwroot/desaku.test
 git status --short
 git pull --ff-only origin main
 /www/server/php/84/bin/php /usr/bin/composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+export PATH=/www/server/desaku-node/v22.23.3/bin:$PATH
 npm ci
 npm run build
 /www/server/php/84/bin/php artisan migrate --force

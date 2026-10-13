@@ -1,0 +1,19 @@
+[Unit]
+Description=DESAKU Laravel database queue
+After=network.target
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/desaku.test
+ExecStart=/www/server/php/84/bin/php artisan queue:work --sleep=3 --tries=3 --timeout=120
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=180
+UMask=0027
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
