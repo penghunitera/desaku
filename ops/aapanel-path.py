@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 
@@ -33,6 +34,34 @@ def response(url):
         return urllib.request.build_opener(NoRedirect()).open(url, timeout=20)
     except urllib.error.HTTPError as error:
         return error
+
+
+def activate_nginx(app_contents, proxy_contents):
+    # A wildcard socket still held by old workers prevents binding the same
+    # port on loopback during reload. Move through an unused loopback socket.
+    runtime = run(['ss', '-H', '-ltn', 'sport = :8088'])
+    if '0.0.0.0:8088' in runtime:
+        if run(['ss', '-H', '-ltn', 'sport = :18088']):
+            raise RuntimeError('Temporary loopback listener is already occupied')
+        APP_CONF.write_text(app_contents.replace('127.0.0.1:8088', '127.0.0.1:18088'))
+        INCLUDE.write_text(proxy_contents.replace('127.0.0.1:8088', '127.0.0.1:18088'))
+        run([NGINX, '-t'])
+        run([NGINX, '-s', 'reload'])
+        for attempt in range(40):
+            if not run(['ss', '-H', '-ltn', 'sport = :8088']):
+                break
+            time.sleep(0.25)
+        else:
+            raise RuntimeError('Old wildcard listener has not drained')
+        APP_CONF.write_text(app_contents)
+        INCLUDE.write_text(proxy_contents)
+        run([NGINX, '-t'])
+    run([NGINX, '-s', 'reload'])
+    for attempt in range(40):
+        if '127.0.0.1:8088' in run(['ss', '-H', '-ltn', 'sport = :8088']):
+            return
+        time.sleep(0.25)
+    raise RuntimeError('Loopback listener did not become active after reload')
 
 
 def main():
@@ -87,7 +116,7 @@ def main():
         IP_CONF.write_text(ip_original)
         APP_CONF.write_text(app_original)
         raise
-    run([NGINX, '-s', 'reload'])
+    activate_nginx(app_updated, include_contents)
     run(artisan + ['queue:restart'])
     for path, expected in baseline.items():
         with response('http://103.170.89.151' + path) as res:
