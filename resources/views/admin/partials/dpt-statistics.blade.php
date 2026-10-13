@@ -28,7 +28,7 @@
             </label>
             <button class="button primary" type="submit">Tampilkan statistik</button>
         </form>
-        <div class="dpt-scope"><h3>{{ $dpt['label'] }}</h3><span>{{ number_format($dpt['summary']['villages'], 0, ',', '.') }} desa / kelurahan dalam filter</span></div>
+        <div class="dpt-scope"><h3>{{ $dpt['label'] }}</h3><div><span>{{ number_format($dpt['summary']['villages'], 0, ',', '.') }} desa / kelurahan dalam filter</span>@if($dpt['canViewRecords'] && $dpt['selectedVillage'] !== '')<a href="#dpt-list">Lihat daftar DPT ↓</a>@endif</div></div>
         <div class="dpt-metrics">
             <article><small>JUMLAH DPT</small><b data-dpt-stat="total">{{ number_format($dpt['summary']['total'], 0, ',', '.') }}</b><span>catatan pemilih pada sumber</span></article>
             <article class="dpt-metric-highlight"><small>USIA 15–64 TAHUN</small><b data-dpt-stat="working-age">{{ number_format($dpt['summary']['working_age'], 0, ',', '.') }}</b><span>{{ number_format($dpt['summary']['working_age_percent'], 1, ',', '.') }}% dari DPT terpilih</span></article>
