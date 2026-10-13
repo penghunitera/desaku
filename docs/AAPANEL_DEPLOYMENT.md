@@ -52,6 +52,8 @@ Jangan jalankan `db:seed`, `migrate:fresh`, atau `composer setup` pada database 
 
 ## Build dan migration
 
+Migration MySQL menyiapkan tabel sumber DPT dan view statistik dengan aturan validasi usia yang sama seperti impor SQLite. Baris sumber DPT tetap dipindahkan secara privat; migration tidak mengisi atau mengganti data warga.
+
 ```bash
 cd /www/wwwroot/desaku.test
 /www/server/php/84/bin/php /usr/bin/composer check-platform-reqs --no-dev
